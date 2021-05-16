@@ -3,33 +3,86 @@
 	<meta charset='utf-8'>
 	<title>Edaqa's Secret Sharing — Recover</title>
 	<script>{% include 'secrets.js' %}</script>
+	<script>{% include 'encoding.js' %}</script>
+	<style>{% include 'style.css' %}</style>
 	
 	<script>
+		function disassemble_message(message) {
+			// is it a plain encoded message
+			if( message.match(/^[0-9a-f\s]$/) ) {
+				return [message.replace(/\s/g,''), true]
+			}
+			
+			const open = message.indexOf(header_block)
+			const close = message.indexOf(footer_block)
+			if (open == -1 || close == -1) {
+				return ['', false]
+			}
+			
+			return [message.slice(open + header_block.length, close).replace(/\s/g,''), true]
+		}
+		
+		let share_count = 0
+		function add_share() {
+			share_count += 1
+			const new_share = `Secret #${share_count}<textarea id='secret-${share_count}'></textarea>`
+			const child = document.createElement('div')
+			child.id = `div-share-${share_count}`
+			child.innerHTML = new_share
+			document.getElementById('shares').appendChild(child)
+		}
+		
+		function remove_share() {
+			if (share_count < 1) {
+				return
+			}
+			
+			const to_remove = document.getElementById(`div-share-${share_count}`)
+			document.getElementById('shares').removeChild(to_remove)
+			share_count -=1
+		}
+		
 		function decode() {
-			const shares = [
-				document.getElementById('secret-1').value,
-				document.getElementById('secret-2').value,
-			]
+			const output_message = document.getElementById('output-message')
+			output_message.value = 'decoding...'
+			
+			let shares = []
+			let all_okay = true
+			for (let i=1; i <= share_count; ++i ) {
+				const message = document.getElementById(`secret-${i}`).value
+				const [chunk, okay] = disassemble_message(message)
+				shares.push(chunk)
+				all_okay = all_okay && okay
+			}
+			console.log(shares)
 			const raw = secrets.combine(shares)
-			console.log(raw)
 			const message = secrets.hex2str(raw)
-			console.log(message)
+			if (!all_okay) {
+				output_message.value = 'one of the inputs is invalid'
+			} else {
+				output_message.value = message
+			}
+		}
+		
+		window.onload = () => {
+			add_share()
+			add_share()
 		}
 	</script>
 </head>
 <body>
 
-<div>
-Secret #1:
-<textarea id='secret-1'></textarea>
+<div class='region'>
+<div id='shares'>
 </div>
-
-<div>
-Secret #2:
-<textarea id='secret-2'></textarea>
-</div>
-
+<button onclick='add_share()'>+</button>
+<button onclick='remove_share()'>-</button>
 <button onclick='decode()'>Decode</button>
+ </div>
  
+ <div class='region'>
+ Decoded Message:
+ <textarea class='large' id='output-message'></textarea>
+ </div>
 </body>
 </html>

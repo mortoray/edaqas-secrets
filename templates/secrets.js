@@ -1,5 +1,5 @@
 // @preserve authors Edaqa Mortoray, Alexander Stetsyuk, Glenn Rempe
-    var defaults, config, preGenPadding, runCSPRNGTest, CSPRNGTypes
+    var defaults, config, preGenPadding
 
     function reset() {
         defaults = {
@@ -49,22 +49,6 @@
         }
         config = {}
         preGenPadding = new Array(1024).join("0") // Pre-generate a string of 1024 0's for use by padLeft().
-        runCSPRNGTest = true
-
-        // WARNING : Never use 'testRandom' except for testing.
-        CSPRNGTypes = [
-            "nodeCryptoRandomBytes",
-            "browserCryptoGetRandomValues",
-            "testRandom"
-        ]
-    }
-
-    function isSetRNG() {
-        if (config && config.rng && typeof config.rng === "function") {
-            return true
-        }
-
-        return false
     }
 
     // Pads a string `str` with zeros on the left so that its length is a multiple of `bits`
@@ -131,42 +115,9 @@
         return hex
     }
 
-    // Browser supports crypto.getRandomValues()
-    function hasCryptoGetRandomValues() {
-        if (
-            crypto &&
-            typeof crypto === "object" &&
-            (typeof crypto.getRandomValues === "function" ||
-                typeof crypto.getRandomValues === "object") &&
-            (typeof Uint32Array === "function" ||
-                typeof Uint32Array === "object")
-        ) {
-            return true
-        }
-
-        return false
-    }
-
-    // Node.js support for crypto.randomBytes()
-    function hasCryptoRandomBytes() {
-        if (
-            typeof crypto === "object" &&
-            typeof crypto.randomBytes === "function"
-        ) {
-            return true
-        }
-
-        return false
-    }
-
     // Returns a pseudo-random number generator of the form function(bits){}
     // which should output a random string of 1's and 0's of length `bits`.
-    // `type` (Optional) : A string representing the CSPRNG that you want to
-    // force to be loaded, overriding feature detection. Can be one of:
-    //    "nodeCryptoRandomBytes"
-    //    "browserCryptoGetRandomValues"
-    //
-    function getRNG(type) {
+    function getRNG() {
         function construct(bits, arr, radix, size) {
             var i = 0,
                 len,
@@ -189,30 +140,6 @@
             // return null so this result can be re-processed if the result is all 0's.
             if ((str.match(/0/g) || []).length === str.length) {
                 return null
-            }
-
-            return str
-        }
-
-        // Node.js : crypto.randomBytes()
-        // Note : Node.js and crypto.randomBytes() uses the OpenSSL RAND_bytes() function for its CSPRNG.
-        //        Node.js will need to have been compiled with OpenSSL for this to work.
-        // See : https://github.com/joyent/node/blob/d8baf8a2a4481940bfed0196308ae6189ca18eee/src/node_crypto.cc#L4696
-        // See : https://www.openssl.org/docs/crypto/rand.html
-        function nodeCryptoRandomBytes(bits) {
-            var buf,
-                bytes,
-                radix,
-                size,
-                str = null
-
-            radix = 16
-            size = 4
-            bytes = Math.ceil(bits / 8)
-
-            while (str === null) {
-                buf = crypto.randomBytes(bytes)
-                str = construct(bits, buf.toString("hex"), radix, size)
             }
 
             return str
@@ -243,57 +170,7 @@
             return str
         }
 
-        // /////////////////////////////////////////////////////////////
-        // WARNING : DO NOT USE. For testing purposes only.
-        // /////////////////////////////////////////////////////////////
-        // This function will return repeatable non-random test bits. Can be used
-        // for testing only. Node.js does not return proper random bytes
-        // when run within a PhantomJS container.
-        function testRandom(bits) {
-            var arr,
-                elems,
-                int,
-                radix,
-                size,
-                str = null
-
-            radix = 10
-            size = 32
-            elems = Math.ceil(bits / 32)
-            int = 123456789
-            arr = new Uint32Array(elems)
-
-            // Fill every element of the Uint32Array with the same int.
-            for (var i = 0; i < arr.length; i++) {
-                arr[i] = int
-            }
-
-            while (str === null) {
-                str = construct(bits, arr, radix, size)
-            }
-
-            return str
-        }
-
-        // Return a random generator function for browsers that support
-        // crypto.getRandomValues() or Node.js compiled with OpenSSL support.
-        // WARNING : NEVER use testRandom outside of a testing context. Totally non-random!
-        if (type && type === "testRandom") {
-            config.typeCSPRNG = type
-            return testRandom
-        } else if (type && type === "nodeCryptoRandomBytes") {
-            config.typeCSPRNG = type
-            return nodeCryptoRandomBytes
-        } else if (type && type === "browserCryptoGetRandomValues") {
-            config.typeCSPRNG = type
-            return browserCryptoGetRandomValues
-        } else if (hasCryptoRandomBytes()) {
-            config.typeCSPRNG = "nodeCryptoRandomBytes"
-            return nodeCryptoRandomBytes
-        } else if (hasCryptoGetRandomValues()) {
-            config.typeCSPRNG = "browserCryptoGetRandomValues"
-            return browserCryptoGetRandomValues
-        }
+        return browserCryptoGetRandomValues
     }
 
     // Splits a number string `bits`-length segments, after first
@@ -430,7 +307,7 @@
     // //////////////////
 
     var secrets = {
-        init: function(bits, rngType) {
+        init: function(bits) {
             var logs = [],
                 exps = [],
                 x = 1,
@@ -456,14 +333,11 @@
                 )
             }
 
-            if (rngType && CSPRNGTypes.indexOf(rngType) === -1) {
-                throw new Error("Invalid RNG type argument : '" + rngType + "'")
-            }
-
             config.radix = defaults.radix
             config.bits = bits || defaults.bits
             config.size = Math.pow(2, config.bits)
             config.maxShares = config.size - 1
+            config.rng = getRNG()
 
             // Construct the exp and log tables for multiplication.
             primitive = defaults.primitivePolynomials[config.bits]
@@ -481,16 +355,7 @@
             config.logs = logs
             config.exps = exps
 
-            if (rngType) {
-                this.setRNG(rngType)
-            }
-
-            if (!isSetRNG()) {
-                this.setRNG()
-            }
-
             if (
-                !isSetRNG() ||
                 !config.bits ||
                 !config.size ||
                 !config.maxShares ||
@@ -603,8 +468,6 @@
             obj.radix = config.radix
             obj.bits = config.bits
             obj.maxShares = config.maxShares
-            obj.hasCSPRNG = isSetRNG()
-            obj.typeCSPRNG = config.typeCSPRNG
             return obj
         },
 
@@ -670,73 +533,6 @@
             }
 
             throw new Error("The share data provided is invalid : " + share)
-        },
-
-        // Set the PRNG to use. If no RNG function is supplied, pick a default using getRNG()
-        setRNG: function(rng) {
-            var errPrefix = "Random number generator is invalid ",
-                errSuffix =
-                    " Supply an CSPRNG of the form function(bits){} that returns a string containing 'bits' number of random 1's and 0's."
-
-            if (
-                rng &&
-                typeof rng === "string" &&
-                CSPRNGTypes.indexOf(rng) === -1
-            ) {
-                throw new Error("Invalid RNG type argument : '" + rng + "'")
-            }
-
-            // If RNG was not specified at all,
-            // try to pick one appropriate for this env.
-            if (!rng) {
-                rng = getRNG()
-            }
-
-            // If `rng` is a string, try to forcibly
-            // set the RNG to the type specified.
-            if (rng && typeof rng === "string") {
-                rng = getRNG(rng)
-            }
-
-            if (runCSPRNGTest) {
-                if (rng && typeof rng !== "function") {
-                    throw new Error(errPrefix + "(Not a function)." + errSuffix)
-                }
-
-                if (rng && typeof rng(config.bits) !== "string") {
-                    throw new Error(
-                        errPrefix + "(Output is not a string)." + errSuffix
-                    )
-                }
-
-                if (rng && !parseInt(rng(config.bits), 2)) {
-                    throw new Error(
-                        errPrefix +
-                            "(Binary string output not parseable to an Integer)." +
-                            errSuffix
-                    )
-                }
-
-                if (rng && rng(config.bits).length > config.bits) {
-                    throw new Error(
-                        errPrefix +
-                            "(Output length is greater than config.bits)." +
-                            errSuffix
-                    )
-                }
-
-                if (rng && rng(config.bits).length < config.bits) {
-                    throw new Error(
-                        errPrefix +
-                            "(Output length is less than config.bits)." +
-                            errSuffix
-                    )
-                }
-            }
-
-            config.rng = rng
-
-            return true
         },
 
         // Converts a given UTF16 character string to the HEX representation.
@@ -837,22 +633,6 @@
             }
 
             return out
-        },
-
-        // Generates a random bits-length number string using the PRNG
-        random: function(bits) {
-            if (
-                typeof bits !== "number" ||
-                bits % 1 !== 0 ||
-                bits < 2 ||
-                bits > 65536
-            ) {
-                throw new Error(
-                    "Number of bits must be an Integer between 1 and 65536."
-                )
-            }
-
-            return bin2hex(config.rng(bits))
         },
 
         // Divides a `secret` number String str expressed in radix `inputRadix` (optional, default 16)
@@ -995,23 +775,6 @@
                 "Invalid 'id' or 'shares' Array argument to newShare()."
             )
         },
-
-        /* test-code */
-        // export private functions so they can be unit tested directly.
-        _reset: reset,
-        _padLeft: padLeft,
-        _hex2bin: hex2bin,
-        _bin2hex: bin2hex,
-        _hasCryptoGetRandomValues: hasCryptoGetRandomValues,
-        _hasCryptoRandomBytes: hasCryptoRandomBytes,
-        _getRNG: getRNG,
-        _isSetRNG: isSetRNG,
-        _splitNumStringToIntArray: splitNumStringToIntArray,
-        _horner: horner,
-        _lagrange: lagrange,
-        _getShares: getShares,
-        _constructPublicShareString: constructPublicShareString
-        /* end-test-code */
     }
 
     // Always initialize secrets with default settings.

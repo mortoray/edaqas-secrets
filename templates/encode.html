@@ -3,40 +3,114 @@
 	<meta charset='utf-8'>
 	<title>Edaqa's Secret Sharing — Encode</title>
 	<script>{% include 'secrets.js' %}</script>
+	<script>{% include 'encoding.js' %}</script>
+	<style>{% include 'style.css' %}</style>
 	
 	<script>
+		const context = {{ context | safe }}
+		function assemble_message(secret) {
+			const public_message = document.getElementById('public-message').value
+			const message = public_message + 
+				'\n\n'+ 
+				header_block + 
+				'\n' + 
+				secret.match(/.{1,70}/g).join('\n') + 
+				'\n' + 
+				footer_block + 
+				'\n\n' +
+				context.instructions
+				
+			return message
+		}
+		
 		function encode() {
 			const message = secrets.str2hex(document.getElementById('input-message').value)
-			const num_shares = parseInt(document.getElementById('number-shares').value)
-			const threshhold = parseInt(document.getElementById('number-required').value)
+			const num_shares = parseInt(document.getElementById('number-shares').value, 10)
+			const threshhold = parseInt(document.getElementById('number-required').value, 10)
 			const shares = secrets.share(message, num_shares, threshhold)
-			console.log(shares)
+			
+			let shares_div = document.getElementById('shares')
+			while( shares_div.firstChild ) {
+				shares_div.removeChild(shares_div.firstChild)
+			}
+			
+			for (const [index, share] of shares.entries()) {
+				let share_div = document.createElement('div')
+				share_div.classList.add('region')
+				let share_text = document.createElement('textarea')
+				share_text.id = `share-${index}`
+				share_text.value = assemble_message(share)
+				share_div.appendChild(share_text)
+				
+				let share_copy = document.createElement('button')
+				share_copy.innerText = 'Copy'
+				share_copy.onclick = () => {
+					share_text.select();
+					document.execCommand("copy");
+				}
+				share_div.appendChild(share_copy)
+				
+				let done = document.createElement('span')
+				const done_id = `done-${index}`
+				done.innerHTML = `<input id="${done_id}" type="checkbox" ><label for="${done_id}">Done</label>`
+				share_div.appendChild(done)
+				
+				shares_div.appendChild(share_div)
+			}
+			
+			document.getElementById('results').style.display = 'block'
 		}
 	</script>
 </head>
 <body>
+<div class='region'>
 <h1>Edaqa's Secret Sharing</h1>
+<h2>A secret sharing tool by by <a href='https://edaqa.com/'>Edaqa Mortoray</a></h2>
 
-<div>
-Message:
-<textarea id='input-message'></textarea>
+<p>Here you can create a shared secret that can be recovered if enough participants combine their keys.</p>
+
+<div class='field'>
+<em>Secret Message</em>:<br/>
+<textarea id='input-message' class='large'></textarea>
+<i>This contains the secret information. It should only contain data that can be revocable or changed, such as passwords or keys to documents, applications, and websites.</i>
 </div>
 
-<div>
-Number of Shares: 
-<input id='number-shares'>
+<div class='field'>
+<em>Public Message</em>:<br/>
+<textarea id='public-message' class='large'></textarea>
+<i>This message will *not* be encrypted, but added as a clear text header to the recipient instructions.</i>
 </div>
 
-<div>
-Number required to decode:
-<input id='number-required'>
+<div class='field'>
+<em>Number of Shares</em>: <input id='number-shares'><br/>
+<i>How many people would you like to share the secret with?</i>
 </div>
 
+<div class='field'>
+<em>Number required to decode</em>: <input id='number-required'><br/>
+<i>What's the minimum number of people required who can combine their codes to restore the original secret?</i>
+</div>
+
+<div class='cta'>
 <button onclick='encode()'>Encode</button>
-
-<div>
-	<a href='edaqas-secrets-decoder.html'>Decoder</a>
 </div>
+</div>
+
+<div class='region' id='results' style='display: none;'>
+	<div>
+		Download the <a href='./edaqas-secrets-decoder.html' download>decoder</a> (right-click "Save As"), attach it to the message you send to each recipient. This is important as a public decoder may not be available in the future.
+	</div>
+	
+<div id='shares'>
+	
+	
+</div>
+</div>
+
+<footer class='region'>
+
+<p>This tool is provided as-is without warranty of any kind, express or implied. Refer to the <a href="https://github.com/mortoray/edaqas-secrets">project page</a> for more information, or to provide feedback.</p>
+</footer>
 
 </body>
 </html>

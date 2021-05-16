@@ -1,0 +1,4 @@
+instructions: |
+    You, along with some other people, have received part of a secret message. This contains sensitive information from the sender and should be kept secure. In the case of an emergency, you will be able to recreate the secret message from the sender. You need to combine your code with enough codes of the other recipients.
+    
+    In addition to the code you also have a decoder provided as an attachment. This decoder can be opened in your browser. Copy and paste the code-block above to the decoder. Do this for all the secrets you've collected. Press "Decode". If you don't have enough codes, the result will be gibberish. If you have enough codes the original secret message will be provided.
