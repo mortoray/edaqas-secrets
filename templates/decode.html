@@ -1,0 +1,35 @@
+<html>
+<head>
+	<meta charset='utf-8'>
+	<title>Edaqa's Secret Sharing — Recover</title>
+	<script>{% include 'secrets.js' %}</script>
+	
+	<script>
+		function decode() {
+			const shares = [
+				document.getElementById('secret-1').value,
+				document.getElementById('secret-2').value,
+			]
+			const raw = secrets.combine(shares)
+			console.log(raw)
+			const message = secrets.hex2str(raw)
+			console.log(message)
+		}
+	</script>
+</head>
+<body>
+
+<div>
+Secret #1:
+<textarea id='secret-1'></textarea>
+</div>
+
+<div>
+Secret #2:
+<textarea id='secret-2'></textarea>
+</div>
+
+<button onclick='decode()'>Decode</button>
+ 
+</body>
+</html>

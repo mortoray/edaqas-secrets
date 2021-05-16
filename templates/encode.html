@@ -1,0 +1,42 @@
+<html>
+<head>
+	<meta charset='utf-8'>
+	<title>Edaqa's Secret Sharing — Encode</title>
+	<script>{% include 'secrets.js' %}</script>
+	
+	<script>
+		function encode() {
+			const message = secrets.str2hex(document.getElementById('input-message').value)
+			const num_shares = parseInt(document.getElementById('number-shares').value)
+			const threshhold = parseInt(document.getElementById('number-required').value)
+			const shares = secrets.share(message, num_shares, threshhold)
+			console.log(shares)
+		}
+	</script>
+</head>
+<body>
+<h1>Edaqa's Secret Sharing</h1>
+
+<div>
+Message:
+<textarea id='input-message'></textarea>
+</div>
+
+<div>
+Number of Shares: 
+<input id='number-shares'>
+</div>
+
+<div>
+Number required to decode:
+<input id='number-required'>
+</div>
+
+<button onclick='encode()'>Encode</button>
+
+<div>
+	<a href='edaqas-secrets-decoder.html'>Decoder</a>
+</div>
+
+</body>
+</html>
