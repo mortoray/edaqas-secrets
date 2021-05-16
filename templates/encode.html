@@ -38,13 +38,14 @@
 			
 			for (const [index, share] of shares.entries()) {
 				let share_div = document.createElement('div')
-				share_div.classList.add('region')
+				//share_div.classList.add('region')
 				
 				let rcpt = document.createElement('h3')
 				rcpt.innerText = `For ${names[index]}`
 				share_div.appendChild(rcpt)
 				
 				let share_text = document.createElement('textarea')
+				share_text.readOnly = true
 				share_text.id = `share-${index}`
 				share_text.value = assemble_message(share)
 				share_div.appendChild(share_text)
@@ -136,7 +137,7 @@
 <div class='field'>
 	<h3>How many people are needed to decode?</h3>
 	<div>
-		<input id='number-required' type="number" min="1">
+		<input id='number-required' type="number" min="2" value="2">
 	</div>
 	<p class='info'>This is the minimum number of people required who can combine their codes to restore the original secret.</p>
 </div>

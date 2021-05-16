@@ -1,5 +1,5 @@
 build:
-	python build.py
+	env/bin/python build.py
 	
 watch:
 	ls templates/* build.py | entr  just build
