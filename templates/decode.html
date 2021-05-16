@@ -25,7 +25,7 @@
 		let share_count = 0
 		function add_share() {
 			share_count += 1
-			const new_share = `Secret #${share_count}<textarea id='secret-${share_count}'></textarea>`
+			const new_share = `<h3>Code #${share_count}</h3><textarea id='secret-${share_count}'></textarea>`
 			const child = document.createElement('div')
 			child.id = `div-share-${share_count}`
 			child.innerHTML = new_share
@@ -73,16 +73,30 @@
 <body>
 
 <div class='region'>
+<h1>Edaqa's Secret Sharing</h1>
+<h2>A secret sharing tool by by <a href='https://edaqa.com/'>Edaqa Mortoray</a></h2>
+
+<p>This tool can be used to decode shared secrets. Collect the codes from enough recipients and add them to the inputs below.</p>
+
 <div id='shares'>
 </div>
-<button onclick='add_share()'>+</button>
-<button onclick='remove_share()'>-</button>
-<button onclick='decode()'>Decode</button>
+<p class='cta'>
+	<button onclick='add_share()'>+ Add Code</button>
+	<button onclick='remove_share()'>- Remove Code</button>
+</p>
+<p class='cta'>
+	<button onclick='decode()'>Decode</button>
+</p>
  </div>
  
  <div class='region'>
- Decoded Message:
+ <h3>Decoded Message</h3>
  <textarea class='large' id='output-message'></textarea>
  </div>
+ 
+ <footer class='region'>
+ <p>This tool is provided as-is without warranty of any kind, express or implied. Refer to the <a href="https://github.com/mortoray/edaqas-secrets">project page</a> for more information, or to provide feedback.</p>
+ </footer>
+ 
 </body>
 </html>
